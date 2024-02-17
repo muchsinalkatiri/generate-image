@@ -12,7 +12,12 @@ if (!fs.existsSync(resultFolder)) {
 }
 
 // Fungsi untuk memproses setiap kombinasi gambar source dan frame
-const processAllCombinations = async (sourceFiles, frameFiles, text) => {
+const processAllCombinations = async (
+  sourceFiles,
+  frameFiles,
+  text,
+  posisiText
+) => {
   let index = 1;
 
   // Looping untuk setiap file frame
@@ -39,36 +44,51 @@ const processAllCombinations = async (sourceFiles, frameFiles, text) => {
         sourceImage.crop(xOffset, yOffset, targetWidth, targetHeight);
 
         // Samakan ukuran rasio gambar dan frame
-        const targetWidth2 = Math.min(
-          sourceImage.getWidth(),
-          frameImage.getWidth()
-        );
-        const targetHeight2 = Math.min(
-          sourceImage.getHeight(),
-          frameImage.getHeight()
-        );
+        // const targetWidth2 = Math.min(
+        //   sourceImage.getWidth(),
+        //   frameImage.getWidth()
+        // );
+        // const targetHeight2 = Math.min(
+        //   sourceImage.getHeight(),
+        //   frameImage.getHeight()
+        // );
 
-        // Resize gambar source
-        sourceImage.resize(targetWidth2, targetHeight2);
+        // // Resize gambar source
+        // sourceImage.resize(targetWidth2, targetHeight2);
 
         // Resize gambar frame
-        frameImage.resize(targetWidth2, targetHeight2);
+        frameImage.resize(targetWidth, targetHeight);
 
         // Gabungkan gambar frame dengan gambar source (frame di atas source)
-        const resultImage = new Jimp(targetWidth2, targetHeight2);
+        const resultImage = new Jimp(targetWidth, targetHeight);
         resultImage.blit(sourceImage, 0, 0);
         resultImage.blit(frameImage, 0, 0);
 
         if (text) {
           // Tambahkan teks ke dalam hasil gambar dan letakkan di tengah
-          const font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE); // Ubah ukuran teks sesuai kebutuhan
+          const font = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE); // Ubah ukuran teks sesuai kebutuhan
           const textWidth = Jimp.measureText(font, text);
           const textHeight = Jimp.measureTextHeight(font, text, textWidth);
 
-          const yRandom = [100, 200, 300, 420];
+          // const yRandom = [100, 200, 300, 420];
+
+          const yRandom = [
+            (targetHeight / 13) * 1,
+            (targetHeight / 13) * 7,
+            (targetHeight / 13) * 12,
+          ];
 
           // Mendapatkan indeks acak dari array
-          const randomIndex = Math.floor(Math.random() * yRandom.length);
+          let randomIndex;
+          if (posisiText == "1") {
+            randomIndex = Math.floor(Math.random() * yRandom.length);
+          } else if (posisiText == "2") {
+            randomIndex = 0;
+          } else if (posisiText == "3") {
+            randomIndex = 2;
+          } else if (posisiText == "4") {
+            randomIndex = 1;
+          }
 
           // Mengakses nilai x dan y
           const textX = Math.floor((resultImage.getWidth() - textWidth) / 2);
@@ -87,7 +107,9 @@ const processAllCombinations = async (sourceFiles, frameFiles, text) => {
         }
 
         // Resize gambar hasil ke ukuran yang diinginkan (500x500)
-        // resultImage.resize(500, 500);
+        if (targetHeight > 1000 && targetWidth > 1000) {
+          resultImage.resize(1000, 1000);
+        }
 
         // Simpan hasil gabungan ke folder result dalam format JPG
         await resultImage.writeAsync(`${resultFolder}${index}.jpg`);
@@ -116,6 +138,15 @@ const processAllCombinations = async (sourceFiles, frameFiles, text) => {
     });
   });
 
+  const posisiText = await new Promise((resolve) => {
+    rl.question(
+      "Posisi Text : \n1. Acak \n2. Atas \n3. Bawah \n4. Tengah\n",
+      (input) => {
+        resolve(input);
+      }
+    );
+  });
+
   // Menutup interface pembacaan
   rl.close();
   // Baca semua file di folder sources
@@ -141,7 +172,12 @@ const processAllCombinations = async (sourceFiles, frameFiles, text) => {
       const frameImageFiles = frameFiles.filter((file) => /\.png$/i.test(file));
 
       // Proses semua kombinasi gambar source dan frame
-      await processAllCombinations(sourceImageFiles, frameImageFiles, text);
+      await processAllCombinations(
+        sourceImageFiles,
+        frameImageFiles,
+        text,
+        posisiText
+      );
     });
   });
 })();
